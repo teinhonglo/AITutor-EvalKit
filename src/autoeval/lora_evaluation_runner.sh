@@ -12,6 +12,10 @@
 # - Set HF_HOME / HF_TOKEN in your shell if needed for private models.
 # ==============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$ROOT_DIR"
+
 # ------------------------------- GPU/Compile ---------------------------------
 # GPU selection (e.g., "0" or "0,1"). Set per your machine.
 export CUDA_VISIBLE_DEVICES=0
@@ -28,15 +32,15 @@ MAX_LENGTH=1024 # Maximum sequence length during evaluation.
 
 # Base model + adapter paths.
 MODEL_NAME="google/gemma-2-2b-it"
-ADAPTER_PATH="../../assets/${FOLDER_NAME}/lora_model"
+ADAPTER_PATH="assets/${FOLDER_NAME}/lora_model"
 
 # Evaluation / prediction input.
 # Choose one of the following depending on data format:
-PREDICT_FILE="../../assets/data/test_data/test_sample.json" # JSON mode
-# PREDICT_FILE="../../assets/data/test_data/all_test.csv" # CSV mode
+PREDICT_FILE="assets/data/test_data/test_sample.json" # JSON mode
+# PREDICT_FILE="assets/data/test_data/all_test.csv" # CSV mode
 
 # Directory to store outputs (predictions, logs, metrics).
-OUTPUT_DIR="../../assets/${FOLDER_NAME}"
+OUTPUT_DIR="assets/${FOLDER_NAME}"
 
 # ------------------------------ Generation knobs -----------------------------
 # Temperature controls randomness. Higher = more diverse outputs.
@@ -53,7 +57,7 @@ TOP_K=50
 TOP_P=1.0
 
 # ----------------------------- Run Evaluation --------------------------------
-python evaluation.py \
+python -m src.autoeval.evaluation \
     --model_name "$MODEL_NAME" \
     --dimensions "${DIMENSIONS[@]}" \
     --adapter_path "$ADAPTER_PATH" \

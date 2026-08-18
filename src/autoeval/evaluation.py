@@ -4,20 +4,15 @@ import logging
 from collections import defaultdict
 
 import pandas as pd
-import torch
 from colorama import Fore, init as colorama_init
-from peft import PeftModel
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModelForCausalLM, set_seed
+import torch
 
-from utils.argparse import parse_args
-from utils.constants import LABEL_LIST, SEED, TARGET_MODULES_MAP
-from utils.prompt import EvaluationDatasetFormatter
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-set_seed(SEED)
+from src.autoeval.inference import load_model_and_tokenizer
+from src.autoeval.utils.argparse import parse_args
+from src.autoeval.utils.constants import LABEL_LIST
+from src.autoeval.utils.prompt import EvaluationDatasetFormatter
 
 # Initialize colorama
 colorama_init(autoreset=True)
@@ -31,33 +26,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_model_and_tokenizer(base_model_name, adapter_path=None, enable_lora=False):
-    """Load base model and optionally merge LoRA adapters"""
-    logger.info(f"Loading base model: {base_model_name}")
-    
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        base_model_name,
-        torch_dtype=torch.bfloat16,
-    )
-
-    if enable_lora and adapter_path:
-        logger.info(f"Loading LoRA adapters from: {adapter_path}")
-        model = PeftModel.from_pretrained(model, adapter_path)
-        try:
-            model = model.merge_and_unload()
-            logger.info("Successfully merged LoRA adapters")
-        except Exception as e:
-            logger.error(f"Adapter merging failed: {str(e)}")
-            logger.info("Proceeding with unmerged adapters")
-    else:
-        logger.info("No LoRA adapters to load")
-
-    return model.to(device), tokenizer
-
 def load_conversations(path):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -65,8 +33,11 @@ def load_conversations(path):
 def evaluate(args):
     logger.info(Fore.CYAN + "\n========== Starting Evaluation ==========\n")
     model, tokenizer = load_model_and_tokenizer(
-        args.model_name, args.adapter_path, args.enable_lora == "True"
+        args.model_name,
+        args.adapter_path,
+        enable_lora=args.enable_lora == "True",
     )
+    device = next(model.parameters()).device
     
     # ==== CASE 1: JSON / JSONL ====
     if args.eval_file.endswith((".json", ".jsonl")):
