@@ -144,6 +144,7 @@ dependencies:
       - httpcore==1.0.9
       - httptools==0.7.1
       - httpx==0.28.1
+      - pytest==8.4.2
       - huggingface-hub==0.35.3
       - idna==3.10
       - imbalanced-learn==0.14.0
