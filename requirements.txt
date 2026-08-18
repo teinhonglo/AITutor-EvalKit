@@ -8,3 +8,11 @@ evaluate==0.4.6
 vllm==0.11.2
 openai==2.8.1
 anthropic==0.71.0
+fastapi==0.121.1
+uvicorn==0.38.0
+pydantic==2.12.3
+requests==2.32.4
+accelerate==1.9.0
+colorama==0.4.6
+httpx==0.28.1
+pytest==8.4.2

@@ -1,0 +1,6 @@
+# Runtime-downloaded tools and logs
+.runtime/
+
+# Python caches
+__pycache__/
+*.py[cod]
