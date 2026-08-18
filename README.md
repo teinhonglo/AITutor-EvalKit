@@ -19,6 +19,129 @@ This repository includes a standalone FastAPI service for the **paper-best LoMTL
 
 The model and LoRA adapter load once during server startup and remain resident on the GPU. API callers cannot select another model, checkpoint, task, or generation configuration.
 
+### End-to-end setup: installation to first request
+
+The following is the complete recommended workflow for the configured machine. Commands marked **first time only** do not need to be repeated for every API start.
+
+#### 1. Clone and enter the repository (first time only)
+
+```bash
+git clone https://github.com/teinhonglo/AITutor-EvalKit.git
+cd AITutor-EvalKit
+```
+
+If the repository is already cloned, only run `cd /path/to/AITutor-EvalKit`.
+
+#### 2. Initialize Conda and create the environment (first time only)
+
+```bash
+eval "$(/share/homes/teinhonglo/anaconda3/bin/conda shell.bash hook)"
+conda env create -f environment.yml
+conda activate teval_py310
+```
+
+If `teval_py310` already exists, update it instead of creating it again:
+
+```bash
+conda env update -n teval_py310 -f environment.yml --prune
+conda activate teval_py310
+```
+
+Confirm that the API and model packages import successfully:
+
+```bash
+python -c "import fastapi, peft, torch, transformers, uvicorn; print('dependencies: ok')"
+```
+
+#### 3. Confirm GPU and checkpoint availability
+
+```bash
+nvidia-smi
+test -f assets/model/lora_model/adapter_model.safetensors \
+  && echo "LoRA checkpoint: ok"
+```
+
+The API requires a CUDA-visible GPU. The committed adapter must remain at `assets/model/lora_model`.
+
+#### 4. Authenticate with Hugging Face (first time only per account/machine)
+
+Gemma may require accepting its license on the `google/gemma-2-2b-it` Hugging Face model page. After access is approved, log in with one of these methods:
+
+```bash
+hf auth login
+```
+
+or set a token for the current shell:
+
+```bash
+export HF_TOKEN=hf_your_token_here
+```
+
+Do not commit the token to this repository.
+
+#### 5. Start the API and random Cloudflare URL
+
+```bash
+bash run_api.sh
+```
+
+`run_api.sh` automatically sources `path.sh`, activates `teval_py310`, selects GPU 0, loads Gemma and the LoRA once, waits for `/health`, creates a Cloudflare Quick Tunnel, and finally prints the local and randomly generated public URLs. Initial startup can take several minutes while Hugging Face downloads the base model.
+
+To use GPU 1 and port 8080 instead:
+
+```bash
+GPU_ID=1 bash run_api.sh --port 8080
+```
+
+Keep this terminal open. Do not copy a Cloudflare URL until the launcher displays `Cloudflare random public URL (ready)`.
+
+#### 6. Test locally from a second terminal
+
+For the default port, open another terminal in the repository and run:
+
+```bash
+eval "$(/share/homes/teinhonglo/anaconda3/bin/conda shell.bash hook)"
+conda activate teval_py310
+python scripts/test_api.py --base-url http://127.0.0.1:8000
+```
+
+If startup used `--port 8080`, replace `8000` with `8080`. A direct request can also be sent without the Python client:
+
+```bash
+curl -X POST http://127.0.0.1:8000/evaluate \
+  -H "Content-Type: application/json" \
+  -d @tests/sample_request.json
+```
+
+#### 7. Test the public Cloudflare URL
+
+Copy the exact random URL printed by `run_api.sh`; do not use the placeholder literally:
+
+```bash
+python scripts/test_api.py \
+  --base-url https://the-actual-random-name.trycloudflare.com
+```
+
+This command can be run from another machine after installing Python and `requests`. Public Swagger documentation is available by appending `/docs` to the printed URL.
+
+#### 8. Stop everything
+
+Return to the terminal running `run_api.sh` and press:
+
+```text
+Ctrl+C
+```
+
+The launcher's cleanup trap stops both Uvicorn and `cloudflared`. A Quick Tunnel URL is temporary; the next startup normally produces a different random URL.
+
+#### Optional: local-only startup
+
+To skip Cloudflare entirely:
+
+```bash
+bash run_api.sh --no-tunnel
+```
+
 ### Install
 
 A CUDA-capable Linux machine, Python 3.10+, Git, and `curl` are required. Gemma is a gated Hugging Face model: accept its license on Hugging Face, then authenticate before startup (for example, `huggingface-cli login` or export `HF_TOKEN`).
@@ -237,7 +360,7 @@ Below are the key resources for the AITutor-EvalKit project:
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/kaushal0494/AITutor-EvalKit.git
+git clone https://github.com/teinhonglo/AITutor-EvalKit.git
 cd AITutor-EvalKit
 ```
 
@@ -542,7 +665,7 @@ This project is licensed under the MIT License.
 
 ## Contact
 
-- **Issues:** [GitHub Issues](https://github.com/kaushal0494/AITutor-EvalKit/issues)
+- **Issues:** [GitHub Issues](https://github.com/teinhonglo/AITutor-EvalKit/issues)
 - **Lab:** [EduNLP Lab, MBZUAI](https://mbzuai.ac.ae)
 
 ---
